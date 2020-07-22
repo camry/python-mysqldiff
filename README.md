@@ -15,3 +15,13 @@ pip install mysql-connector-python
 ```bash
 pyinstaller -F mysqldiff.py
 ```
+
+## 使用
+
+```bash
+# 查看帮助
+./bin/mysqldiff --help
+# 实例
+./bin/mysqldiff --source user:password@host:port --db db1:db2
+./bin/mysqldiff --source user:password@host:port --target user:password@host:port --db db1:db2
+```
