@@ -466,22 +466,39 @@ def get_add_keys(index_name, statistic):
         columns_name = []
 
         for k in sorted(statistic):
-            columns_name.append("`{column_name}`".format(column_name=statistic[k]['COLUMN_NAME']))
+            sub_part = ''
+
+            if statistic[k]['SUB_PART'] is not None:
+                sub_part = '(%d)' % statistic[k]['SUB_PART']
+
+            columns_name.append(
+                "`{column_name}`{sub_part}".format(column_name=statistic[k]['COLUMN_NAME'], sub_part=sub_part))
 
         return "KEY `{index_name}` ({columns_name})".format(index_name=index_name, columns_name=",".join(columns_name))
     else:
+        columns_name = []
+
         if 'PRIMARY' == index_name:
-            columns_name = []
 
             for k in sorted(statistic):
-                columns_name.append("`{column_name}`".format(column_name=statistic[k]['COLUMN_NAME']))
+                sub_part = ''
+
+                if statistic[k]['SUB_PART'] is not None:
+                    sub_part = '(%d)' % statistic[k]['SUB_PART']
+
+                columns_name.append(
+                    "`{column_name}{sub_part}`".format(column_name=statistic[k]['COLUMN_NAME'], sub_part=sub_part))
 
             return "PRIMARY KEY ({columns_name})".format(columns_name=",".join(columns_name))
         else:
-            columns_name = []
-
             for k in sorted(statistic):
-                columns_name.append("`{column_name}`".format(column_name=statistic[k]['COLUMN_NAME']))
+                sub_part = ''
+
+                if statistic[k]['SUB_PART'] is not None:
+                    sub_part = '(%d)' % statistic[k]['SUB_PART']
+
+                columns_name.append(
+                    "`{column_name}`{sub_part}".format(column_name=statistic[k]['COLUMN_NAME'], sub_part=sub_part))
 
             return "UNIQUE KEY `{index_name}` ({columns_name})".format(index_name=index_name,
                                                                        columns_name=",".join(columns_name))
@@ -510,6 +527,7 @@ def get_statistic(statistic):
         'INDEX_NAME': statistic['INDEX_NAME'],
         'SEQ_IN_INDEX': statistic['SEQ_IN_INDEX'],
         'COLUMN_NAME': statistic['COLUMN_NAME'],
+        'SUB_PART': statistic['SUB_PART'],
         'INDEX_TYPE': statistic['INDEX_TYPE']
     }
 
