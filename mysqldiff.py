@@ -158,6 +158,11 @@ def mysqldiff(ctx, source, target, db):
 
                 target_cursor_column.close()
 
+                # ALTER LIST...
+                alter_tables = []
+                alter_columns = []
+                alter_keys = []
+
                 if source_column_data_count > 0 and target_column_data_count > 0:
                     columns_local = {}
                     columns_online = {}
@@ -175,9 +180,6 @@ def mysqldiff(ctx, source, target, db):
                         columns_pos_online[target_column_data['ORDINAL_POSITION']] = column_data
 
                     if columns_pos_local != columns_pos_online:
-                        alter_tables = []
-                        alter_columns = []
-
                         alter_tables.append("ALTER TABLE `%s`" % source_table_name)
 
                         for column_name, column_online in columns_online.items():
@@ -227,16 +229,6 @@ def mysqldiff(ctx, source, target, db):
                                         column_name=column_name, column_type=column_local['COLUMN_TYPE'],
                                         null_able=null_able, extra=extra, after=after))
 
-                        for alter_column in alter_columns:
-                            if alter_column == alter_columns[-1]:
-                                column_dot = ';'
-                            else:
-                                column_dot = ','
-
-                            alter_tables.append('%s%s' % (alter_column, column_dot))
-
-                        diff_sql.append('\n'.join(alter_tables))
-
                 source_cursor_statistic = source_cnx.cursor(dictionary=True)
 
                 source_query_statistic = "SELECT * FROM `information_schema`.`STATISTICS` " \
@@ -259,11 +251,10 @@ def mysqldiff(ctx, source, target, db):
                 target_cursor_statistic.execute(target_query_statistic)
 
                 target_statistic_data_t = target_cursor_statistic.fetchall()
-                target_statistic_data_count = target_cursor_statistic.rowcount
 
                 target_cursor_statistic.close()
 
-                if source_statistic_data_count > 0 and target_statistic_data_count > 0:
+                if source_statistic_data_count > 0:
                     statistics_local = {}
                     statistics_online = {}
 
@@ -288,10 +279,8 @@ def mysqldiff(ctx, source, target, db):
                             }
 
                     if statistics_local != statistics_online:
-                        alter_tables = []
-                        alter_keys = []
-
-                        alter_tables.append("ALTER TABLE `%s`" % source_table_name)
+                        if alter_tables is []:
+                            alter_tables.append("ALTER TABLE `%s`" % source_table_name)
 
                         for index_name, statistic_online in statistics_online.items():
                             if index_name not in statistics_local:
@@ -316,14 +305,19 @@ def mysqldiff(ctx, source, target, db):
 
                         if alter_keys:
                             for alter_key in alter_keys:
-                                if alter_key == alter_keys[-1]:
-                                    key_dot = ';'
-                                else:
-                                    key_dot = ','
+                                alter_columns.append(alter_key)
 
-                                alter_tables.append('%s%s' % (alter_key, key_dot))
+                if alter_columns:
+                    for alter_column in alter_columns:
+                        if alter_column == alter_columns[-1]:
+                            column_dot = ';'
+                        else:
+                            column_dot = ','
 
-                            diff_sql.append('\n'.join(alter_tables))
+                        alter_tables.append('%s%s' % (alter_column, column_dot))
+
+                if alter_tables:
+                    diff_sql.append('\n'.join(alter_tables))
 
             else:
                 # CREATE TABLE...
