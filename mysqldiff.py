@@ -279,7 +279,7 @@ def mysqldiff(ctx, source, target, db):
                             }
 
                     if statistics_local != statistics_online:
-                        if alter_tables is []:
+                        if not alter_tables:
                             alter_tables.append("ALTER TABLE `%s`" % source_table_name)
 
                         for index_name, statistic_online in statistics_online.items():
