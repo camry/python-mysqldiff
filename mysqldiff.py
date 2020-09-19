@@ -186,9 +186,30 @@ def mysqldiff(ctx, source, target, db):
                             if column_name not in columns_local:
                                 alter_columns.append("  DROP COLUMN `%s`" % column_name)
 
+                        # ADD COLUMN
+                        for column_name, column_local in columns_local.items():
+                            if column_name not in columns_online:
+                                null_able = get_column_default(column_local)
+
+                                extra = ''
+
+                                if column_local['EXTRA'] != '':
+                                    extra = ' %s' % column_local['EXTRA'].upper()
+
+                                after = get_column_after(column_local['ORDINAL_POSITION'], columns_pos_local)
+
+                                # 重新计算字段位置
+                                columns_online = reset_calc_position(column_name, column_local['ORDINAL_POSITION'],
+                                                                     columns_online)
+
+                                alter_columns.append(
+                                    "  ADD COLUMN `{column_name}` {column_type}{null_able}{extra} {after}".format(
+                                        column_name=column_name, column_type=column_local['COLUMN_TYPE'],
+                                        null_able=null_able, extra=extra, after=after))
+
+                        # MODIFY COLUMN
                         for column_name, column_local in columns_local.items():
                             if column_name in columns_online:
-                                # MODIFY COLUMN
                                 if column_local != columns_online[column_name]:
                                     null_able = get_column_default(column_local)
 
@@ -207,26 +228,6 @@ def mysqldiff(ctx, source, target, db):
                                         "  MODIFY COLUMN `{column_name}` {column_type}{null_able}{extra} {after}".format
                                         (column_name=column_name, column_type=column_local['COLUMN_TYPE'],
                                          null_able=null_able, extra=extra, after=after))
-
-                            else:
-                                # ADD COLUMN
-                                null_able = get_column_default(column_local)
-
-                                extra = ''
-
-                                if column_local['EXTRA'] != '':
-                                    extra = ' %s' % column_local['EXTRA'].upper()
-
-                                after = get_column_after(column_local['ORDINAL_POSITION'], columns_pos_local)
-
-                                # 重新计算字段位置
-                                columns_online = reset_calc_position(column_name, column_local['ORDINAL_POSITION'],
-                                                                     columns_online)
-
-                                alter_columns.append(
-                                    "  ADD COLUMN `{column_name}` {column_type}{null_able}{extra} {after}".format(
-                                        column_name=column_name, column_type=column_local['COLUMN_TYPE'],
-                                        null_able=null_able, extra=extra, after=after))
 
                 source_cursor_statistic = source_cnx.cursor(dictionary=True)
 
