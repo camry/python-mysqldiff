@@ -200,8 +200,7 @@ def mysqldiff(ctx, source, target, db):
                                     after = get_column_after(column_local['ORDINAL_POSITION'], columns_pos_local)
 
                                     # 重新计算字段位置
-                                    columns_online = reset_calc_position(column_name, 0,
-                                                                         column_local['ORDINAL_POSITION'],
+                                    columns_online = reset_calc_position(column_name, column_local['ORDINAL_POSITION'],
                                                                          columns_online, True)
 
                                     alter_columns.append(
@@ -221,8 +220,8 @@ def mysqldiff(ctx, source, target, db):
                                 after = get_column_after(column_local['ORDINAL_POSITION'], columns_pos_local)
 
                                 # 重新计算字段位置
-                                columns_online = reset_calc_position(column_name, 0,
-                                                                     column_local['ORDINAL_POSITION'], columns_online)
+                                columns_online = reset_calc_position(column_name, column_local['ORDINAL_POSITION'],
+                                                                     columns_online)
 
                                 alter_columns.append(
                                     "  ADD COLUMN `{column_name}` {column_type}{null_able}{extra} {after}".format(
@@ -397,11 +396,10 @@ def mysqldiff(ctx, source, target, db):
         if diff_sql:
             click.echo('SET NAMES %s;\n' % source_schema_data['DEFAULT_CHARACTER_SET_NAME'])
             click.echo("\n\n".join(diff_sql))
-        else:
-            click.secho('数据库表结构一致。', fg='green')
 
     except Exception as e:
-        click.secho('ERROR: %s' % e, fg='red')
+        click.secho('ERROR: %s' % e, fg='red', err=True)
+        sys.exit(1)
     finally:
         if source_cnx is not None:
             source_cnx.close()
@@ -498,19 +496,16 @@ def get_add_keys(index_name, statistic):
                                                                        columns_name=",".join(columns_name))
 
 
-def reset_calc_position(column_name, online_pos, local_pos, columns_online, is_modify=False):
-    for k, v in columns_online.items():
-        cur_pos = v['ORDINAL_POSITION']
-
-        if is_modify is True:
-            if local_pos <= cur_pos < online_pos:
-                columns_online[k]['ORDINAL_POSITION'] = columns_online[k]['ORDINAL_POSITION'] + 1
-        else:
-            if cur_pos >= local_pos:
-                columns_online[k]['ORDINAL_POSITION'] = columns_online[k]['ORDINAL_POSITION'] + 1
-
+def reset_calc_position(column_name, local_pos, columns_online, is_modify=False):
+    if is_modify:
         if column_name in columns_online:
             columns_online[column_name]['ORDINAL_POSITION'] = local_pos
+    else:
+        for k, v in columns_online.items():
+            cur_pos = v['ORDINAL_POSITION']
+
+            if cur_pos >= local_pos:
+                columns_online[k]['ORDINAL_POSITION'] = columns_online[k]['ORDINAL_POSITION'] + 1
 
     return columns_online
 
