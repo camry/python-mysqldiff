@@ -1,3 +1,5 @@
+import sys
+
 import click
 import mysql.connector
 
