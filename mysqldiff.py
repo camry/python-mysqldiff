@@ -184,6 +184,8 @@ def mysqldiff(ctx, source, target, db):
 
                         for column_name, column_online in columns_online.items():
                             if column_name not in columns_local:
+                                columns_online = reset_calc_position(column_name, column_online['ORDINAL_POSITION'],
+                                                                     columns_online, 3)
                                 alter_columns.append("  DROP COLUMN `%s`" % column_name)
 
                         # ADD COLUMN
@@ -200,7 +202,7 @@ def mysqldiff(ctx, source, target, db):
 
                                 # 重新计算字段位置
                                 columns_online = reset_calc_position(column_name, column_local['ORDINAL_POSITION'],
-                                                                     columns_online)
+                                                                     columns_online, 1)
 
                                 alter_columns.append(
                                     "  ADD COLUMN `{column_name}` {column_type}{null_able}{extra} {after}".format(
@@ -222,7 +224,7 @@ def mysqldiff(ctx, source, target, db):
 
                                     # 重新计算字段位置
                                     columns_online = reset_calc_position(column_name, column_local['ORDINAL_POSITION'],
-                                                                         columns_online, True)
+                                                                         columns_online, 2)
 
                                     alter_columns.append(
                                         "  MODIFY COLUMN `{column_name}` {column_type}{null_able}{extra} {after}".format
@@ -497,16 +499,25 @@ def get_add_keys(index_name, statistic):
                                                                        columns_name=",".join(columns_name))
 
 
-def reset_calc_position(column_name, local_pos, columns_online, is_modify=False):
-    if is_modify:
-        if column_name in columns_online:
-            columns_online[column_name]['ORDINAL_POSITION'] = local_pos
-    else:
+def reset_calc_position(column_name, local_pos, columns_online, status):
+    if 1 == status:
+        # ADD ...
         for k, v in columns_online.items():
             cur_pos = v['ORDINAL_POSITION']
 
             if cur_pos >= local_pos:
                 columns_online[k]['ORDINAL_POSITION'] = columns_online[k]['ORDINAL_POSITION'] + 1
+    elif 2 == status:
+        # MODIFY ...
+        if column_name in columns_online:
+            columns_online[column_name]['ORDINAL_POSITION'] = local_pos
+    elif 3 == status:
+        # DROP ...
+        for k, v in columns_online.items():
+            cur_pos = v['ORDINAL_POSITION']
+
+            if cur_pos >= local_pos:
+                columns_online[k]['ORDINAL_POSITION'] = columns_online[k]['ORDINAL_POSITION'] - 1
 
     return columns_online
 
