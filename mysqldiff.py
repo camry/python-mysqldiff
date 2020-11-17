@@ -432,17 +432,22 @@ def get_column(column):
 
 
 def get_column_default(column):
-    if column['IS_NULLABLE'] == 'YES':
-        null_able = ' DEFAULT NULL'
-    else:
+    if column['IS_NULLABLE'] == 'NO':
         if column['COLUMN_DEFAULT'] is not None:
             if column['COLUMN_DEFAULT'] in ['CURRENT_TIMESTAMP']:
                 null_able = " NOT NULL DEFAULT %s" % column['COLUMN_DEFAULT']
             else:
                 null_able = " NOT NULL DEFAULT '%s'" % column['COLUMN_DEFAULT']
-
         else:
             null_able = " NOT NULL"
+    else:
+        if column['COLUMN_DEFAULT'] is not None:
+            if column['COLUMN_DEFAULT'] in ['CURRENT_TIMESTAMP']:
+                null_able = " NULL DEFAULT %s" % column['COLUMN_DEFAULT']
+            else:
+                null_able = " DEFAULT '%s'" % column['COLUMN_DEFAULT']
+        else:
+            null_able = ' DEFAULT NULL'
 
     return null_able
 
