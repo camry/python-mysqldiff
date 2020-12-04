@@ -369,7 +369,7 @@ def mysqldiff(ctx, source, target, db):
 
                         character = extra = dot = ''
 
-                        if column_local['CHARACTER_SET_NAME'] is not None:
+                        if column['CHARACTER_SET_NAME'] is not None:
                             if column['CHARACTER_SET_NAME'] != source_schema_data['DEFAULT_CHARACTER_SET_NAME']:
                                 character = ' CHARACTER SET %s' % column['CHARACTER_SET_NAME']
 
