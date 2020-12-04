@@ -195,7 +195,11 @@ def mysqldiff(ctx, source, target, db):
                             if column_name not in columns_online:
                                 null_able = get_column_default(column_local)
 
-                                extra = ''
+                                character = extra = ''
+
+                                if column_local['CHARACTER_SET_NAME'] is not None:
+                                    if column_local['CHARACTER_SET_NAME'] != source_schema_data['DEFAULT_CHARACTER_SET_NAME']:
+                                        character = ' CHARACTER SET %s' % column_local['CHARACTER_SET_NAME']
 
                                 if column_local['EXTRA'] != '':
                                     extra = ' %s' % column_local['EXTRA'].upper()
@@ -207,8 +211,8 @@ def mysqldiff(ctx, source, target, db):
                                                                      columns_online, 1)
 
                                 alter_columns.append(
-                                    "  ADD COLUMN `{column_name}` {column_type}{null_able}{extra} {after}".format(
-                                        column_name=column_name, column_type=column_local['COLUMN_TYPE'],
+                                    "  ADD COLUMN `{column_name}` {column_type}{character}{null_able}{extra} {after}".format(
+                                        column_name=column_name, column_type=column_local['COLUMN_TYPE'], character=character,
                                         null_able=null_able, extra=extra, after=after))
 
                         # MODIFY COLUMN
@@ -217,7 +221,11 @@ def mysqldiff(ctx, source, target, db):
                                 if column_local != columns_online[column_name]:
                                     null_able = get_column_default(column_local)
 
-                                    extra = ''
+                                    character = extra = ''
+
+                                    if column_local['CHARACTER_SET_NAME'] is not None:
+                                        if column_local['CHARACTER_SET_NAME'] != source_schema_data['DEFAULT_CHARACTER_SET_NAME']:
+                                            character = ' CHARACTER SET %s' % column_local['CHARACTER_SET_NAME']
 
                                     if column_local['EXTRA'] != '':
                                         extra = ' %s' % column_local['EXTRA'].upper()
@@ -229,9 +237,9 @@ def mysqldiff(ctx, source, target, db):
                                                                          columns_online, 2)
 
                                     alter_columns.append(
-                                        "  MODIFY COLUMN `{column_name}` {column_type}{null_able}{extra} {after}".format
-                                        (column_name=column_name, column_type=column_local['COLUMN_TYPE'],
-                                         null_able=null_able, extra=extra, after=after))
+                                        "  MODIFY COLUMN `{column_name}` {column_type}{character}{null_able}{extra} {after}".format(
+                                            column_name=column_name, column_type=column_local['COLUMN_TYPE'], character=character, null_able=null_able,
+                                            extra=extra, after=after))
 
                 source_cursor_statistic = source_cnx.cursor(dictionary=True)
 
@@ -359,7 +367,11 @@ def mysqldiff(ctx, source, target, db):
                     for column in source_column_data:
                         null_able = get_column_default(column)
 
-                        extra = dot = ''
+                        character = extra = dot = ''
+
+                        if column_local['CHARACTER_SET_NAME'] is not None:
+                            if column['CHARACTER_SET_NAME'] != source_schema_data['DEFAULT_CHARACTER_SET_NAME']:
+                                character = ' CHARACTER SET %s' % column['CHARACTER_SET_NAME']
 
                         if column['EXTRA'] != '':
                             extra = ' %s' % column['EXTRA'].upper()
@@ -368,8 +380,9 @@ def mysqldiff(ctx, source, target, db):
                             dot = ','
 
                         create_tables.append(
-                            "  `{column_name}` {column_type}{null_able}{extra}{dot}".format(
+                            "  `{column_name}` {column_type}{character}{null_able}{extra}{dot}".format(
                                 column_name=column['COLUMN_NAME'], column_type=column['COLUMN_TYPE'],
+                                character=character,
                                 null_able=null_able, extra=extra, dot=dot))
 
                     # KEY...
@@ -388,14 +401,12 @@ def mysqldiff(ctx, source, target, db):
                                 }
 
                         for index_name, source_statistics_data in source_statistics_data_dic.items():
-                            create_tables_keys.append(
-                                "  {key_slot}".format(key_slot=get_add_keys(index_name, source_statistics_data)))
+                            create_tables_keys.append("  {key_slot}".format(key_slot=get_add_keys(index_name, source_statistics_data)))
 
                     create_tables.append(",\n".join(create_tables_keys))
                     create_tables.append(
                         ") ENGINE={engine} DEFAULT CHARSET={charset};".format(engine=source_table_data['ENGINE'],
-                                                                              charset=source_schema_data[
-                                                                                  'DEFAULT_CHARACTER_SET_NAME']))
+                                                                              charset=source_schema_data['DEFAULT_CHARACTER_SET_NAME']))
                     diff_sql.append("\n".join(create_tables))
 
         if diff_sql:
