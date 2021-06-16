@@ -1,5 +1,7 @@
 # mysqldiff
 
+> 注：已不在维护 Python 版本的 mysqldiff 工具，请前往 Golang 版本的 [go-mysqldiff](https://github.com/camry/go-mysqldiff) 工具。
+
 Python 针对 MySQL 数据库表结构的差异 SQL 工具。
 
 ## 使用
